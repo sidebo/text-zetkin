@@ -191,7 +191,7 @@ else:
 
 SMS_USERNAME = input('Please enter 46elks API username: ')
 SMS_PASSWORD = input('Please enter 46elks API password: ')
-SMS_FROM = input("Please enter 46elks phone number")
+SMS_FROM = input("Please enter 46elks phone number: ")
 
 print("Do you wish to text people who match a tag/query or people who participat in an action?")
 choice = ''
@@ -215,7 +215,7 @@ while not option_idx.isdigit():
 
 option = options[int(option_idx)]
 
-if choice == 's':
+if choice == 'q':
     people = zetkin_api_get('people/queries/%d/matches' % option['id'], org_id, zetkin_access_token)
     send_texts(people, text, choice)
 elif choice == 't':
