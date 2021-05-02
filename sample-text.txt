@@ -1,0 +1,4 @@
+Hej {person.first_name}! Imorgon är det äntligen första maj och du är anmäld till ett av våra mini-tåg.
+Du börjar kl. {action.start_time} vid {action.location} och ansvarig på plats är {action.contact.first_name} {action.contact.last_name}, {action.contact.phone}, {action.contact.email}
+Kom ihåg att hålla avstånd även i den lilla gruppen. Den ansvariga kommer ha munskydd att dela ut som du gärna får använda.
+Välkommen!
