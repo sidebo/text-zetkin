@@ -4,11 +4,13 @@ The name, and other fields of recipients may be accessed using placesholders lik
 {person.first_name} in the text.
 """
 import sys
+import os
 import requests
 import phonenumbers
 import re
 import math
 import yaml
+from dotenv import load_dotenv
 from dateutil import parser, tz
 from datetime import datetime
 
@@ -17,6 +19,9 @@ TEXT_LIMIT = 160
 PRICE_PER_TEXT = 0.35
 VAT = 1.25
 CURRENCY = 'SEK'
+
+# Load environment variables from .env
+load_dotenv()
 
 def normalize_phone(phone, country='SE'):
     if phone is None:
@@ -183,15 +188,15 @@ if len(sys.argv) < 2:
 if len(sys.argv) > 2:
     org_id = sys.argv[2]
 else:
-    org_id = input("Please enter organization ID: ")
+    org_id = os.environ.get('ZETKIN_ORG') or input("Please enter organization ID: ")
 if len(sys.argv) > 3:
     zetkin_access_token = sys.argv[3]
 else:
     zetkin_access_token = input("Please enter Zetkin access token: ")
 
-SMS_USERNAME = input('Please enter 46elks API username: ')
-SMS_PASSWORD = input('Please enter 46elks API password: ')
-SMS_FROM = input("Please enter 46elks phone number: ")
+SMS_USERNAME = os.environ.get('46ELKS_API_USER') or input('Please enter 46elks API username: ')
+SMS_PASSWORD = os.environ.get('46ELKS_API_PASSWORD') or input('Please enter 46elks API password: ')
+SMS_FROM = os.environ.get('46ELKS_PHONE') or input("Please enter 46elks phone number: ")
 
 print("Do you wish to text people who match a tag/query or people who participat in an action?")
 choice = ''
