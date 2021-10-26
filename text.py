@@ -10,6 +10,8 @@ import phonenumbers
 import re
 import math
 import yaml
+import binascii
+import subprocess
 from dotenv import load_dotenv
 from dateutil import parser, tz
 from datetime import datetime
@@ -19,6 +21,8 @@ TEXT_LIMIT = 160
 PRICE_PER_TEXT = 0.35
 VAT = 1.25
 CURRENCY = 'SEK'
+
+people_by_phone = None
 
 # Load environment variables from .env
 load_dotenv()
@@ -84,18 +88,32 @@ def send_sms(text, phone, username, password, from_number):
         },
     }
 
-def send_texts(people, text, choice, action=None):
-    people = [person for person in people if person['phone'] is not None]
+def sms_get_replies(username, password, phone, limit=20):
+    try:
+        response = requests.get(
+            "https://api.46elks.com/a1/sms",
+            auth = (username, password),
+            params = {
+                "limit": limit,
+                "account": "me",
+                "to": phone,
+                "status": "",
+            }
+        )
+    except:
+        raise Exception("ERROR: Cannot fetch texts from 46Elks")
 
-    print('\nSend to the following people: ')
+    result = response.json()
+    return result['data']
+
+def prepare_texts(text, people):
+    over_limit_count = 0
+
+    total_text_count = 0
 
     p = re.compile('\{[^\}]+\}')
     tokens = p.findall(text)
     tokens = [t.strip('{}').split('.') for t in tokens]
-
-    over_limit_count = 0
-
-    total_text_count = 0
 
     texts = []
 
@@ -134,6 +152,18 @@ def send_texts(people, text, choice, action=None):
             'phone': phone,
             'name': person['first_name'] + ' ' + person['last_name'],
         })
+    return (texts, over_limit_count, total_text_count)
+
+
+def send_texts(people, text, choice, action=None):
+    people = [person for person in people if person['phone'] is not None]
+
+    if not text:
+        text = edit_text_file()
+
+    print('\nSend to the following people: ')
+
+    (texts, over_limit_count, total_text_count) = prepare_texts(text, people)
 
     print("%d/%d texts over the text limit!" % (over_limit_count, len(people)))
 
@@ -150,22 +180,37 @@ def send_texts(people, text, choice, action=None):
         _type = 'query'
     elif choice == 'a':
         _type = 'action'
+    elif choice == 'r':
+        _type = 'response'
 
-    print("\nPlease reivew the %d people that you have chosen to text as part of the %s %s" % (len(people), option['title'], _type))
-    print("Press enter when you want to move to the nex page")
+    if choice != 'r':
+        print("\nPlease reivew the %d people that you have chosen to text as part of the %s" % (len(people), _type))
+        print("Press enter when you want to move to the nex page")
 
-    idx = 0
-    PAGE_SIZE = 20
-    while idx < len(texts):
-        input("\nPress enter to continue\n")
-        for text in texts[idx:idx+PAGE_SIZE]:
-            print("%s, %s" % (text['name'], text['phone']))
-        idx += PAGE_SIZE
+        idx = 0
+        PAGE_SIZE = 20
+        while idx < len(texts):
+            input("\nPress enter to continue\n")
+            for text in texts[idx:idx+PAGE_SIZE]:
+                print("%s, %s" % (text['name'], text['phone']))
+            idx += PAGE_SIZE
 
-    print(texts[0]['text'])
-    print("\n\nHave you reviewed all the information and want to send this message? Type SEND, othewise type SKIP")
+        print(texts[0]['text'])
+
+    print("\n\nHave you reviewed all the information and want to send this message? Type SEND, othewise type SKIP. If you're not satisfied with text, type EDIT")
     send = ""
     while send not in ["SEND", "SKIP"]:
+        if send == "EDIT":
+            text = edit_text_file()
+            (texts, over_limit_count, total_text_count) = prepare_texts(text, people)
+            print("Please review the first text:\n")
+            print("Recipient: %s" % texts[0]['phone'])
+            print(texts[0]['text'])
+
+            print("%d/%d texts over the text limit!" % (over_limit_count, len(people)))
+
+            print("This will cost %.2f %s" % (total_text_count*PRICE_PER_TEXT*VAT, CURRENCY))
+
         send = input()
 
     if send == "SEND":
@@ -174,10 +219,52 @@ def send_texts(people, text, choice, action=None):
                 log = send_sms(text['text'],text['phone'], SMS_USERNAME, SMS_PASSWORD, SMS_FROM)
                 yaml.safe_dump(log, log_file)
 
-with open(sys.argv[1], "rt") as f:
-    lines = f.readlines()
-    text = ''.join(lines)
-    text = text.strip()
+def read_text_file(filename):
+    with open(filename, "rt") as f:
+        lines = f.readlines()
+        text = ''.join(lines)
+        text = text.strip()
+    return text
+
+def edit_text_file():
+    filename = binascii.b2a_hex(os.urandom(15))
+    p = subprocess.Popen(('gedit', filename))
+    p.wait()
+    return read_text_file(filename)
+
+def get_option(type, value):
+    if type == 'r':
+        return (value['from']) + ' ' + get_person_name(value['from']) +  ': '  + value['message'] + ' (' + value['created'] + ')'
+    else:
+        return value['title']
+
+def get_people_by_phone(people):
+    people_by_phone = {}
+
+    for person in people:
+        intl_phone = normalize_phone(person['phone'])
+        people_by_phone[intl_phone] = person
+
+    return people_by_phone
+
+def get_person_name(phone):
+    person = people_by_phone.get(phone)
+    first_name = person['first_name'] if person else 'Unknown'
+    last_name = person['last_name'] if person else 'Unknown'
+
+    return first_name + ' ' + last_name
+
+def print_phone_history(message):
+    texts = sms_get_replies(SMS_USERNAME, SMS_PASSWORD, phone, 1)
+    print("Text history with " + phone + ": ")
+    for text in texts:
+        print(text['from'] + ': ' + text['message']  + ' (' + text['created'] + ')')
+
+    print(message['from'] + ': ' + message['message'] + ' (' + message['created'] + ')')
+
+text = None
+if len(sys.argv) > 1:
+    text = read_text_file(sys.argv[1])
 
 log = {}
 zetkin_access_token = ''
@@ -198,66 +285,91 @@ SMS_USERNAME = os.environ.get('46ELKS_API_USER') or input('Please enter 46elks A
 SMS_PASSWORD = os.environ.get('46ELKS_API_PASSWORD') or input('Please enter 46elks API password: ')
 SMS_FROM = os.environ.get('46ELKS_PHONE') or input("Please enter 46elks phone number: ")
 
-print("Do you wish to text people who match a tag/query or people who participat in an action?")
-choice = ''
-while choice not in(['t','q','a']):
-    choice = input("(t)ag/(q)uery/(a)ction: ")
+continue_texting = 'R'
+while continue_texting == 'R':
+    print("Do you wish to text people who match a tag/query or people who participat in an action?")
+    choice = ''
+    while choice not in(['t','q','a','r']):
+        choice = input("(t)ag/(q)uery/(a)ction/(r)esponse: ")
 
-if(choice == 't'):
-    options = zetkin_api_get('people/tags', org_id, zetkin_access_token)
-elif(choice == 'q'):
-    options = zetkin_api_get('people/queries', org_id, zetkin_access_token)
-elif(choice == 'a'):
-    options = zetkin_api_get('campaigns', org_id, zetkin_access_token)
+    if(choice == 't'):
+        options = zetkin_api_get('people/tags', org_id, zetkin_access_token)
+    elif(choice == 'q'):
+        options = zetkin_api_get('people/queries', org_id, zetkin_access_token)
+    elif(choice == 'a'):
+        options = zetkin_api_get('campaigns', org_id, zetkin_access_token)
+    elif(choice == 'r'):
+        people = zetkin_api_get('people', org_id, zetkin_access_token)
+        if people_by_phone is None:
+            people_by_phone = get_people_by_phone(people)
+        options = sms_get_replies(SMS_USERNAME, SMS_PASSWORD, SMS_FROM)
 
-print("Choose from these options: ")
-for idx, option in enumerate(options):
-    print(str(idx) + ": " + option['title'])
+    print("Choose from these options: ")
+    for idx, option in enumerate(options):
+        print(str(idx) + ": " + get_option(choice, option))
 
-option_idx = ''
-while not option_idx.isdigit():
-    option_idx = input("Which option? ")
+    option_idx = ''
+    while not option_idx.isdigit():
+        option_idx = input("Which option? ")
 
-option = options[int(option_idx)]
+    option = options[int(option_idx)]
 
-if choice == 'q':
-    people = zetkin_api_get('people/queries/%d/matches' % option['id'], org_id, zetkin_access_token)
-    send_texts(people, text, choice)
-elif choice == 't':
-    people = zetkin_api_get('people/tags/%d/people' % option['id'], org_id, zetkin_access_token)
-    send_texts(people, text, choice)
-elif choice == 'a':
-    today = datetime.now().strftime('%Y-%m-%d')
-    campaign_actions = zetkin_api_get('campaigns/%d/actions?filter=start_time>%s>' % (option['id'], today), org_id, zetkin_access_token)
 
-    # Filter any actions without contacts
-    campagin_actions = [action for action in campaign_actions if action['contact']]
+    if choice == 'q':
+        people = zetkin_api_get('people/queries/%d/matches' % option['id'], org_id, zetkin_access_token)
+        if text is None:
+            text = edit_text_file()
+        send_texts(people, text, choice)
+    elif choice == 't':
+        people = zetkin_api_get('people/tags/%d/people' % option['id'], org_id, zetkin_access_token)
+        if text is None:
+            text = edit_text_file()
+        send_texts(people, text, choice)
+    elif choice == 'r':
+        phone = option['from']
+        print_phone_history(option)
+        send_texts([{
+            'phone': phone,
+            'first_name': '',
+            'last_name': '',
+        }], text, choice)
+    elif choice == 'a':
+        today = datetime.now().strftime('%Y-%m-%d')
+        campaign_actions = zetkin_api_get('campaigns/%d/actions?filter=start_time>%s>' % (option['id'], today), org_id, zetkin_access_token)
 
-    for action in campaign_actions:
-        action['start_time'] = parser.parse(action['start_time'])
-        action['end_time'] = parser.parse(action['end_time'])
+        # Filter any actions without contacts
+        campagin_actions = [action for action in campaign_actions if action['contact']]
 
-        contact = zetkin_api_get('people/%d' % action['contact']['id'], org_id, zetkin_access_token)
-
-        # Format phone number
-        phone = format_phone(contact['phone'])
-        contact['phone'] = phone
-
-        action['contact'] = contact
-
-    print("Choose from actions to remind")
-    for idx, action in enumerate(campagin_actions):
-        print("%d: %s, %s, %s" % (idx,
-                                  action['title'] if action['title'] else action['activity']['title'],
-                                  action['location']['title'],
-                                  action['start_time'].strftime('%Y-%m-%d %H:%M')))
-
-    action_choice = input('Which action? (ALL for all)')
-    if(action_choice == "ALL"):
         for action in campaign_actions:
+            action['start_time'] = parser.parse(action['start_time'])
+            action['end_time'] = parser.parse(action['end_time'])
+
+            contact = zetkin_api_get('people/%d' % action['contact']['id'], org_id, zetkin_access_token)
+
+            # Format phone number
+            phone = format_phone(contact['phone'])
+            contact['phone'] = phone
+
+            action['contact'] = contact
+
+        print("Choose from actions to remind")
+        for idx, action in enumerate(campagin_actions):
+            print("%d: %s, %s, %s" % (idx,
+                                      action['title'] if action['title'] else action['activity']['title'],
+                                      action['location']['title'],
+                                      action['start_time'].strftime('%Y-%m-%d %H:%M')))
+
+        action_choice = input('Which action? (ALL for all)')
+        if(action_choice == "ALL"):
+            for action in campaign_actions:
+                people = zetkin_api_get('actions/%d/participants' % action['id'], org_id, zetkin_access_token)
+                send_texts(people, text, choice, action)
+        else:
+            action = campaign_actions[int(action_choice)]
             people = zetkin_api_get('actions/%d/participants' % action['id'], org_id, zetkin_access_token)
             send_texts(people, text, choice, action)
-    else:
-        action = campaign_actions[int(action_choice)]
-        people = zetkin_api_get('actions/%d/participants' % action['id'], org_id, zetkin_access_token)
-        send_texts(people, text, choice, action)
+
+    continue_texting = ""
+    while continue_texting not in ['R', 'EXIT']:
+        print('Do you want to text more? Type R, otherwise, type EXIT')
+        continue_texting = input()
