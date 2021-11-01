@@ -344,6 +344,10 @@ while continue_texting == 'R':
             action['start_time'] = parser.parse(action['start_time'])
             action['end_time'] = parser.parse(action['end_time'])
 
+            # If not contact has been assigned, skip the action
+            if not action['contact']:
+                continue
+
             contact = zetkin_api_get('people/%d' % action['contact']['id'], org_id, zetkin_access_token)
 
             # Format phone number
