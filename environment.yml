@@ -9,4 +9,3 @@ dependencies:
   - pyyaml
   - python-dotenv
   - python-dateutil
-prefix: /Users/edvinsidebo/opt/miniconda3/envs/zetkin
