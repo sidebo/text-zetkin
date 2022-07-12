@@ -14,6 +14,7 @@ To create a new account, follow these steps:
 ## Python environment setup
 Install via pip:
 ```pip install -r requirements.txt```
+
 Install a conda env (recommended) (requires anaconda/miniconda):
 ```
 conda env create -f environment.yml
