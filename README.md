@@ -12,7 +12,7 @@ To create a new account, follow these steps:
 - Fill the `.env` file with the username, password and phone number.
 
 ## Python environment setup
-Install via pip:
+Install via pip [NOT TESTED]:
 ```pip install -r requirements.txt```
 
 Install a conda env (recommended) (requires anaconda/miniconda):
