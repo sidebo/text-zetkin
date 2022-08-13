@@ -21,6 +21,7 @@ TEXT_LIMIT = 160
 PRICE_PER_TEXT = 0.35
 VAT = 1.25
 CURRENCY = 'SEK'
+CACHE = {}
 
 people_by_phone = None
 
@@ -54,14 +55,19 @@ def format_phone(phone, country='SE'):
     return phonenumbers.format_number(phone, phonenumbers.PhoneNumberFormat.NATIONAL)
 
 def zetkin_api_get(url, org_id, zetkin_access_token):
-    base_url = ZETKIN_BASE_URL + 'orgs/' + org_id + '/'
-    request_url = base_url + url
-    try:
-        headers = {'Authorization': 'Bearer ' + zetkin_access_token,
-                   'Content-Type': 'application/json' }
-        response = requests.get(request_url, headers=headers)
-    except:
-        raise Exception("ERROR: Cannot access Zetkin URL " + url)
+    if url in CACHE:
+        response = CACHE[url]
+    else:
+        base_url = ZETKIN_BASE_URL + 'orgs/' + org_id + '/'
+        request_url = base_url + url
+        try:
+            headers = {'Authorization': 'Bearer ' + zetkin_access_token,
+                       'Content-Type': 'application/json' }
+            response = requests.get(request_url, headers=headers)
+            CACHE[url] = response
+        except:
+            raise Exception("ERROR: Cannot access Zetkin URL " + url)
+
     try:
         result = response.json()
         return result['data']
