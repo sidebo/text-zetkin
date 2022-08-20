@@ -94,7 +94,7 @@ def send_sms(text, phone, username, password, from_number):
         },
     }
 
-def sms_get_replies(username, password, phone, limit=20):
+def sms_get_replies(username, password, phone, limit=50):
     try:
         response = requests.get(
             "https://api.46elks.com/a1/sms",
@@ -344,7 +344,7 @@ while continue_texting == 'R':
         campaign_actions = zetkin_api_get('campaigns/%d/actions?filter=start_time>%s>' % (option['id'], today), org_id, zetkin_access_token)
 
         # Filter any actions without contacts
-        campagin_actions = [action for action in campaign_actions if action['contact']]
+        campaign_actions = [action for action in campaign_actions if action['contact']]
 
         for action in campaign_actions:
             action['start_time'] = parser.parse(action['start_time'])
@@ -363,7 +363,7 @@ while continue_texting == 'R':
             action['contact'] = contact
 
         print("Choose from actions to remind")
-        for idx, action in enumerate(campagin_actions):
+        for idx, action in enumerate(campaign_actions):
             print("%d: %s, %s, %s" % (idx,
                                       action['title'] if action['title'] else action['activity']['title'],
                                       action['location']['title'],
