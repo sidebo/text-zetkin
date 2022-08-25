@@ -12,6 +12,11 @@ import math
 import yaml
 import binascii
 import subprocess
+import time
+import pickle
+import jwt
+from datetime import datetime
+from selenium import webdriver
 from dotenv import load_dotenv
 from dateutil import parser, tz
 from datetime import datetime
@@ -53,6 +58,36 @@ def format_phone(phone, country='SE'):
         return None
 
     return phonenumbers.format_number(phone, phonenumbers.PhoneNumberFormat.NATIONAL)
+
+def get_access_token():
+    browser = webdriver.Firefox()
+    cookies = None
+    try:
+        cache = open('.api-cache', 'rb')
+        cookies = pickle.load(cache)
+        browser.get('https://organize.zetk.in/static/')
+        for co in cookies:
+            browser.add_cookie(co)
+    except Exception as e:
+        print(e)
+
+    browser.get('https://organize.zetk.in')
+    while True:
+        time.sleep(1)
+        cookies = browser.get_cookies()
+        for co in cookies:
+            if co['name'] == 'apiAccessToken':
+                cache = open('.api-cache', 'wb+')
+                pickle.dump(cookies, cache)
+                cache.close()
+                decoded = jwt.decode(co['value'], options={"verify_signature": False})
+                issued_at = datetime.fromtimestamp(decoded['iat'])
+                since_issued = datetime.now() - issued_at
+                if since_issued.seconds < 3600:
+                    browser.quit()
+                    return co['value']
+                else:
+                    browser.get('https://organize.zetk.in')
 
 def zetkin_api_get(url, org_id, zetkin_access_token):
     if url in CACHE:
@@ -285,7 +320,7 @@ else:
 if len(sys.argv) > 3:
     zetkin_access_token = sys.argv[3]
 else:
-    zetkin_access_token = input("Please enter Zetkin access token: ")
+    zetkin_access_token = get_access_token()
 
 SMS_USERNAME = os.environ.get('46ELKS_API_USER') or input('Please enter 46elks API username: ')
 SMS_PASSWORD = os.environ.get('46ELKS_API_PASSWORD') or input('Please enter 46elks API password: ')
