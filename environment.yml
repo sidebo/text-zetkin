@@ -1,6 +1,7 @@
 name: zetkin
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - python[version='>=3']
   - phonenumbers
