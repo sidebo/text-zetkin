@@ -12,7 +12,7 @@ To create a new account, follow these steps:
 - Fill the `.env` file with the username, password and phone number.
 
 ## Gecko webdriver
-To fetch the authentication token automatically, this script require the [Gecko Webdriver](https://github.com/mozilla/geckodriver/releases).
+To fetch the authentication token automatically, this script requires the [Gecko Webdriver](https://github.com/mozilla/geckodriver/releases).
 
 ## Python environment setup
 Install via pip:
