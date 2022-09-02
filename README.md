@@ -11,8 +11,11 @@ To create a new account, follow these steps:
 - Get the 46elks.se API username, password and the phone number you wish to send from (in international format)
 - Fill the `.env` file with the username, password and phone number.
 
+## Gecko webdriver
+To fetch the authentication token automatically, this script require the [Gecko Webdriver](https://github.com/mozilla/geckodriver/releases).
+
 ## Python environment setup
-Install via pip [NOT TESTED]:
+Install via pip:
 ```pip install -r requirements.txt```
 
 Install a conda env (recommended) (requires anaconda/miniconda):
@@ -24,5 +27,5 @@ conda activate zetkin
 ## Send text
 - Type a text using the format in sample-text.txt
 - Run with `python text.py text.txt`, follow the instructions.
-- The script will prompt for Zetkin access token. Log in to Zetkin Organize->People and get your access token (inspector -> network tab -> reload -> filter xhr -> click optional GET request -> copy token after "Bearer")
+- The script will launch a firefox webdriver to organize.zetk.in in order to fetch the token.
 - Fill
