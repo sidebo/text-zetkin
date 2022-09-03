@@ -26,7 +26,6 @@ TEXT_LIMIT = 160
 PRICE_PER_TEXT = 0.35
 VAT = 1.25
 CURRENCY = 'SEK'
-CACHE = {}
 
 people_by_phone = None
 
@@ -102,6 +101,11 @@ def zetkin_api_get(url, org_id, zetkin_access_token):
             CACHE[url] = response
         except:
             raise Exception("ERROR: Cannot access Zetkin URL " + url)
+
+        if url == 'people':
+            data_cache = open(".data-cache-%s" % org_id, 'wb+')
+            pickle.dump(CACHE, data_cache)
+            data_cache.close()
 
     try:
         result = response.json()
@@ -321,6 +325,15 @@ if len(sys.argv) > 3:
     zetkin_access_token = sys.argv[3]
 else:
     zetkin_access_token = get_access_token()
+
+try:
+    data_cache = open(".data-cache-%s" % org_id, 'rb')
+    CACHE = pickle.load(data_cache)
+    data_cache.close()
+except Exception as e:
+    print(e)
+    CACHE = {}
+
 
 SMS_USERNAME = os.environ.get('46ELKS_API_USER') or input('Please enter 46elks API username: ')
 SMS_PASSWORD = os.environ.get('46ELKS_API_PASSWORD') or input('Please enter 46elks API password: ')
