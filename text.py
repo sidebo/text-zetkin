@@ -417,15 +417,17 @@ while continue_texting == 'R':
                                       action['location']['title'],
                                       action['start_time'].strftime('%Y-%m-%d %H:%M')))
 
-        action_choice = input('Which action? (ALL for all)')
+        action_choice = input('Which action(s)? (comma-separated, ALL for all)')
         if(action_choice == "ALL"):
             for action in campaign_actions:
                 people = zetkin_api_get('actions/%d/participants' % action['id'], org_id, zetkin_access_token)
                 send_texts(people, text, choice, action)
         else:
-            action = campaign_actions[int(action_choice)]
-            people = zetkin_api_get('actions/%d/participants' % action['id'], org_id, zetkin_access_token)
-            send_texts(people, text, choice, action)
+            action_choices = [int(ac.strip()) for ac in action_choice.split(",")]
+            for ac in action_choices:
+                action = campaign_actions[ac]
+                people = zetkin_api_get('actions/%d/participants' % action['id'], org_id, zetkin_access_token)
+                send_texts(people, text, choice, action)
 
     continue_texting = ""
     while continue_texting not in ['R', 'EXIT']:
