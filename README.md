@@ -11,8 +11,9 @@ To create a new account, follow these steps:
 - Get the 46elks.se API username, password and the phone number you wish to send from (in international format)
 - Fill the `.env` file with the username, password and phone number as in .env-sample
 
-## Gecko webdriver
-To fetch the authentication token automatically, this script requires the [Gecko Webdriver](https://github.com/mozilla/geckodriver/releases).
+## Gecko webdriver and browser
+To fetch the authentication token automatically, this script requires the [Gecko Webdriver](https://github.com/mozilla/geckodriver/releases). Download it and move the executable to somewhere in your `$PATH`. 
+You also need to use the [Mozilla Firefox](https://www.mozilla.org/en-US/firefox/new/) web browser.
 
 ## Python environment setup
 Install via pip:
