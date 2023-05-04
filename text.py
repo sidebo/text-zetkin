@@ -151,7 +151,7 @@ def sms_get_replies(username, password, phone, limit=50):
     result = response.json()
     return result['data']
 
-def prepare_texts(text, people):
+def prepare_texts(text, people, action=None):
     over_limit_count = 0
 
     total_text_count = 0
@@ -208,7 +208,7 @@ def send_texts(people, text, choice, action=None):
 
     print('\nSend to the following people: ')
 
-    (texts, over_limit_count, total_text_count) = prepare_texts(text, people)
+    (texts, over_limit_count, total_text_count) = prepare_texts(text, people, action)
 
     print("%d/%d texts over the text limit!" % (over_limit_count, len(people)))
 
@@ -418,16 +418,13 @@ while continue_texting == 'R':
                                       action['start_time'].strftime('%Y-%m-%d %H:%M')))
 
         action_choice = input('Which action(s)? (comma-separated, ALL for all)')
-        if(action_choice == "ALL"):
-            for action in campaign_actions:
-                people = zetkin_api_get('actions/%d/participants' % action['id'], org_id, zetkin_access_token)
-                send_texts(people, text, choice, action)
-        else:
-            action_choices = [int(ac.strip()) for ac in action_choice.split(",")]
-            for ac in action_choices:
-                action = campaign_actions[ac]
-                people = zetkin_api_get('actions/%d/participants' % action['id'], org_id, zetkin_access_token)
-                send_texts(people, text, choice, action)
+        
+        campaign_actions = campaign_actions if action_choice == "ALL" else \
+            [campaign_actions[idx] for idx in [int(ac.strip()) for ac in action_choice.split(",")]]
+        
+        for action in campaign_actions:
+            people = zetkin_api_get('actions/%d/participants' % action['id'], org_id, zetkin_access_token)
+            send_texts(people, text, choice, action)
 
     continue_texting = ""
     while continue_texting not in ['R', 'EXIT']:
