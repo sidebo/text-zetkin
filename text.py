@@ -15,17 +15,19 @@ import subprocess
 import time
 import pickle
 import jwt
-from datetime import datetime
-from selenium import webdriver
+
+
 from dotenv import load_dotenv
 from dateutil import parser, tz
 from datetime import datetime
 
-ZETKIN_BASE_URL = 'https://api.zetk.in/v1/'
+
 TEXT_LIMIT = 160
 PRICE_PER_TEXT = 0.35
 VAT = 1.25
 CURRENCY = 'SEK'
+
+ZETKIN_BASE_URL = 'https://api.zetk.in/v1/'
 
 people_by_phone = None
 
@@ -58,60 +60,7 @@ def format_phone(phone, country='SE'):
 
     return phonenumbers.format_number(phone, phonenumbers.PhoneNumberFormat.NATIONAL)
 
-def get_access_token():
-    browser = webdriver.Firefox()
-    cookies = None
-    try:
-        cache = open('.api-cache', 'rb')
-        cookies = pickle.load(cache)
-        browser.get('https://organize.zetk.in/static/')
-        for co in cookies:
-            browser.add_cookie(co)
-    except Exception as e:
-        print(e)
 
-    browser.get('https://organize.zetk.in')
-    while True:
-        time.sleep(1)
-        cookies = browser.get_cookies()
-        for co in cookies:
-            if co['name'] == 'apiAccessToken':
-                cache = open('.api-cache', 'wb+')
-                pickle.dump(cookies, cache)
-                cache.close()
-                decoded = jwt.decode(co['value'], options={"verify_signature": False})
-                issued_at = datetime.fromtimestamp(decoded['iat'])
-                since_issued = datetime.now() - issued_at
-                if since_issued.seconds < 3600:
-                    browser.quit()
-                    return co['value']
-                else:
-                    browser.get('https://organize.zetk.in')
-
-def zetkin_api_get(url, org_id, zetkin_access_token):
-    if url in CACHE:
-        response = CACHE[url]
-    else:
-        base_url = ZETKIN_BASE_URL + 'orgs/' + org_id + '/'
-        request_url = base_url + url
-        try:
-            headers = {'Authorization': 'Bearer ' + zetkin_access_token,
-                       'Content-Type': 'application/json' }
-            response = requests.get(request_url, headers=headers)
-            CACHE[url] = response
-        except:
-            raise Exception("ERROR: Cannot access Zetkin URL " + url)
-
-        if url == 'people':
-            data_cache = open(".data-cache-%s" % org_id, 'wb+')
-            pickle.dump(CACHE, data_cache)
-            data_cache.close()
-
-    try:
-        result = response.json()
-        return result['data']
-    except:
-        raise Exception("ERROR: Cannot interpret response from " + url)
 
 def send_sms(text, phone, username, password, from_number):
     print("Send SMS to %s: %s" % (phone, text))
@@ -307,6 +256,32 @@ def print_phone_history(message):
 
     print(message['from'] + ': ' + message['message'] + ' (' + message['created'] + ')')
 
+def zetkin_api_get(url, org_id, zetkin_access_token):
+    if url in CACHE:
+        response = CACHE[url]
+    else:
+        base_url = ZETKIN_BASE_URL + 'orgs/' + org_id + '/'
+        request_url = base_url + url
+        try:
+            headers = {'Authorization': 'Bearer ' + zetkin_access_token,
+                       'Content-Type': 'application/json' }
+            response = requests.get(request_url, headers=headers)
+            CACHE[url] = response
+        except:
+            raise Exception("ERROR: Cannot access Zetkin URL " + url)
+
+        if url == 'people':
+            data_cache = open(".data-cache-%s" % org_id, 'wb+')
+            pickle.dump(CACHE, data_cache)
+            data_cache.close()
+
+    try:
+        result = response.json()
+        return result['data']
+    except:
+        raise Exception("ERROR: Cannot interpret response from " + url)
+
+
 text = None
 if len(sys.argv) > 1:
     text = read_text_file(sys.argv[1])
@@ -335,9 +310,12 @@ except Exception as e:
     CACHE = {}
 
 
+
+
 SMS_USERNAME = os.environ.get('46ELKS_API_USER') or input('Please enter 46elks API username: ')
 SMS_PASSWORD = os.environ.get('46ELKS_API_PASSWORD') or input('Please enter 46elks API password: ')
 SMS_FROM = os.environ.get('46ELKS_PHONE') or input("Please enter 46elks phone number: ")
+
 
 continue_texting = 'R'
 while continue_texting == 'R':
