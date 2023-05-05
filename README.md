@@ -13,6 +13,8 @@ To create a new account, follow these steps:
 
 ## Gecko webdriver
 To fetch the authentication token automatically, this script requires the [Gecko Webdriver](https://github.com/mozilla/geckodriver/releases).
+Download it and move the executable to somewhere in your `$PATH`. 
+You also need to use the [Mozilla Firefox](https://www.mozilla.org/en-US/firefox/new/) web browser.
 
 ## Python environment setup
 Install via pip:

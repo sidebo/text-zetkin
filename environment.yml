@@ -10,3 +10,5 @@ dependencies:
   - pyyaml
   - python-dotenv
   - python-dateutil
+  - pyjwt
+  - selenium
