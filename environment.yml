@@ -12,3 +12,5 @@ dependencies:
   - python-dateutil
   - pyjwt
   - selenium
+  - streamlit
+  - watchdog
