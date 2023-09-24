@@ -79,7 +79,14 @@ def prepare_texts(text, people, action=None):
         })
     return (texts, over_limit_count, total_text_count)
 
+def get_people_by_phone(people):
+    people_by_phone = {}
+    
+    for person in people:
+        intl_phone = normalize_phone(person['phone'])
+        people_by_phone[intl_phone] = person
 
+    return people_by_phone
 
 def get_access_token():
     browser = webdriver.Firefox()

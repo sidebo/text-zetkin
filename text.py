@@ -21,6 +21,8 @@ from dotenv import load_dotenv
 from dateutil import parser, tz
 from datetime import datetime
 
+from zetkin import get_access_token
+
 
 TEXT_LIMIT = 160
 PRICE_PER_TEXT = 0.35

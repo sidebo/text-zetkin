@@ -3,6 +3,24 @@ import phonenumbers
 
 BASE_URL_46ELKS = "https://api.46elks.com/a1/sms"
 
+def sms_get_replies(username, password, phone, limit=50):
+    try:
+        response = requests.get(
+            "https://api.46elks.com/a1/sms",
+            auth = (username, password),
+            params = {
+                "limit": limit,
+                "account": "me",
+                "to": phone,
+                "status": "",
+            }
+        )
+    except:
+        raise Exception("ERROR: Cannot fetch texts from 46Elks")
+
+    result = response.json()
+    return result['data']
+
 def normalize_phone(phone, country='SE'):
     if phone is None:
         return None
