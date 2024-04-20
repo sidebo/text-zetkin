@@ -368,11 +368,12 @@ while continue_texting == 'R':
             'last_name': '',
         }], text, choice)
     elif choice == 'a':
-        today = datetime.now().strftime('%Y-%m-%d')
-        campaign_actions = zetkin_api_get('campaigns/%d/actions?filter=start_time>%s>' % (option['id'], today), org_id, zetkin_access_token)
+        from_date = os.getenv("FROM_DATE") or datetime.now().strftime('%Y-%m-%d')
+        campaign_actions = zetkin_api_get('campaigns/%d/actions?filter=start_time>%s>' % (option['id'], from_date), org_id, zetkin_access_token)
 
         # Filter any actions without contacts
-        campaign_actions = [action for action in campaign_actions if action['contact']]
+        campaign_actions = campaign_actions if os.getenv("ACCEPT_NO_CONTACT").lower() in ("true", "t", "1") else \
+            [action for action in campaign_actions if action['contact']]
 
         for action in campaign_actions:
             action['start_time'] = parser.parse(action['start_time'])
@@ -394,7 +395,7 @@ while continue_texting == 'R':
         for idx, action in enumerate(campaign_actions):
             print("%d: %s, %s, %s" % (idx,
                                       action['title'] if action['title'] else action['activity']['title'],
-                                      action['location']['title'],
+                                      action['location']['title'] if action['location'] else "LOCATION NOT SET",
                                       action['start_time'].strftime('%Y-%m-%d %H:%M')))
 
         action_choice = input('Which action(s)? (comma-separated, ALL for all)')
