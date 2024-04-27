@@ -1,22 +1,11 @@
 import streamlit as st
-from zetkin import get_access_token, zetkin_api_get, get_option, prepare_texts, get_people_by_phone
-from sms import send_sms, format_phone, sms_get_replies
-import sys
+from zetkin import get_access_token, zetkin_api_get, prepare_texts
+from sms import send_sms
 import os
-import requests
-import phonenumbers
-import re
-import math
 import yaml
-import binascii
-import subprocess
-import time
 import pickle
-import jwt
 from datetime import datetime
-from selenium import webdriver
 from dotenv import load_dotenv
-from dateutil import parser, tz
 from datetime import datetime
 from dotenv import load_dotenv
 import logging
