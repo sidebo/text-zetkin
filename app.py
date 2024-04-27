@@ -23,8 +23,8 @@ import logging
 
 ####
 # TODO:
-# * Prepare text in some free text field
-# * Check that all options work
+# * DONE Prepare text in some free text field
+# * DONE Check that all options work
 # * Prepare config such as 46elks credentials somewhere
 # * Sometimes the .api-cache file must be deleted. Include something that removes this file when needed? 
 # * Make docker image
