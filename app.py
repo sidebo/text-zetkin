@@ -34,7 +34,6 @@ import logging
 st.set_page_config(layout="wide")
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logging.
 logger = logging.getLogger("app")
 
 ZETKIN_BASE_URL = 'https://api.zetk.in/v1/'
@@ -46,6 +45,7 @@ CURRENCY = 'SEK'
 load_dotenv()
 
 DRY_RUN = os.getenv("DRY_RUN", "true").lower() in ("true", "t", "1")
+DEFAULT_CAMPAIGN = os.getenv("DEFAULT_CAMPAIGN")
 
 ZETKIN_ORG_ID = os.environ['ZETKIN_ORG']
 
@@ -114,17 +114,19 @@ def send_texts(people, text, choice, action=None):
 
 st.title('Skicka SMS med Zetkin och 46elks')
 
-col1, col2 = st.columns([3, 1])
+col1, col2 = st.columns([2, 1])
 
 def _get_text() -> str:
     example_text = 'Hej {person.first_name}! Detta är en påminnelse om lördagens aktion...'
     with col2:
-        text = st.text_area('Innehåll', example_text, placeholder=example_text)
+        text = st.text_area('SMS-innehåll', example_text, placeholder=example_text)
         return text
 
 
 ### CHAIN OF CHOICES
-options_people = ('Tagg', 'Sökning', 'Aktion/Kampanj', 'SMS-svar')
+# No support for texting those that replied to SMS, like existed in Niklas original script.
+# See his repo for code https://github.com/niklasva82/text-zetkin.git for details on that.
+options_people = ('Tagg', 'Sökning', 'Aktion/Kampanj')
     
 with col1:
     # 1) Chose how to select people
@@ -137,30 +139,34 @@ with col1:
     # 2) Chose which tag/query/action
     if choice_people is not None:
         # Get options of tag/query/action
+        options = None
         if (choice_people == 'Tagg'):
             options = zetkin_api_get('people/tags', ZETKIN_ORG_ID, st.session_state['zetkin_access_token'], CACHE)
         elif (choice_people == 'Sökning'):
            options = zetkin_api_get('people/queries', ZETKIN_ORG_ID, st.session_state['zetkin_access_token'], CACHE)
         elif (choice_people == 'Aktion/Kampanj'):
             options = zetkin_api_get('campaigns', ZETKIN_ORG_ID, st.session_state['zetkin_access_token'], CACHE)
-        elif (choice_people == 'SMS-svar'):
-            people = zetkin_api_get('people', ZETKIN_ORG_ID, st.session_state['zetkin_access_token'])
-            if people_by_phone is None:
-                people_by_phone = get_people_by_phone(people)
-            options = sms_get_replies(SMS_USERNAME, SMS_PASSWORD, SMS_FROM)
     
-        options_list = [f"{i}: {get_option(choice_people, option)}" for i, option in enumerate(options)]
-            
-        
+        options = {i: o for i, o in enumerate(options)}
+        options_list = [f"{i}: {o['title']}" for i, o in options.items()]
+
+        default_choice_filter_idx = None
+        if choice_people == "Aktion/Kampanj" and DEFAULT_CAMPAIGN is not None:
+            for idx, o in options.items():
+                if o['title'] == DEFAULT_CAMPAIGN:
+                    default_choice_filter_idx = idx
+                    break
+
         choice_filter = st.selectbox(
                 f"Välj {choice_people.lower()}",
                 options=options_list,
-                index=None,
+                index=default_choice_filter_idx,
                 disabled=choice_people is None)
         
         # Send texts
         if choice_people and choice_filter:
-            choice_filter = options[int(choice_filter.split(":")[0])]
+            choice_filter_idx = int(choice_filter.split(":")[0])
+            choice_filter = options[choice_filter_idx]
 
             text = _get_text()
         
@@ -170,15 +176,6 @@ with col1:
             elif choice_people == 'Tagg':
                 people = zetkin_api_get('people/tags/%d/people' % choice_filter['id'], ZETKIN_ORG_ID, st.session_state['zetkin_access_token'], CACHE)
                 send_texts(people, text, choice_people)
-            elif choice_people == 'SMS-svar':
-                raise NotImplementedError(choice_people)
-                # phone = option['from']
-                # print_phone_history(option)
-                # send_texts([{
-                #         'phone': phone,
-                #         'first_name': '',
-                #         'last_name': '',
-                #     }], text, choice)
             elif choice_people == 'Aktion/Kampanj':
                 # Get campaigns
                 today = datetime.now().strftime('%Y-%m-%d')
@@ -209,14 +206,12 @@ with col1:
                         else:
                             selected_actions =  container.multiselect("Välj aktion(er):", action_names)
                         submit_button = st.form_submit_button(label="Klar")
-                        #submit_button = st.button(label="Klar button")
                     if submit_button:
                         st.write("Du valde aktioner: ", selected_actions) 
                         selected_action_ids = [action_name_to_id[n] for n in selected_actions]      
                         campaign_actions = campaign_actions if all_ else \
                             [ca for ca in campaign_actions if ca["id"] in selected_action_ids]
 
-                        # text = _get_text()    
                         for action in campaign_actions:
                             people = zetkin_api_get('actions/%d/participants' % action['id'], ZETKIN_ORG_ID, st.session_state['zetkin_access_token'], CACHE)
                             send_texts(people, text, choice_people, action)

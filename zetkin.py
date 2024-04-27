@@ -119,7 +119,7 @@ def get_access_token():
                     browser.get('https://organize.zetk.in')
 
 
-def zetkin_api_get(url, org_id, zetkin_access_token, CACHE):
+def zetkin_api_get(url, org_id, zetkin_access_token, CACHE) -> dict:
     if url in CACHE:
         response = CACHE[url]
     else:
