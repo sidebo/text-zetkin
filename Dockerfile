@@ -1,14 +1,21 @@
 # Dockerfile
 FROM python:3.9-slim
+# FROM jlesage/firefox
 
 WORKDIR /app
 
-#RUN apt-get update && apt-get install -y \
-#    build-essential \
-#    curl \
-#    software-properties-common \
-#    git \
-#    && rm -rf /var/lib/apt/lists/*
+# ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    firefox \   
+    && rm -rf /var/lib/apt/lists/*
+
+# Get gecko driver
+ENV GECKO_VERSION=0.34.0
+ADD https://github.com/mozilla/geckodriver/releases/download/v${GECKO_VERSION}/geckodriver-v${GECKO_VERSION}-linux64.tar.gz /geckodriver-v${GECKO_VERSION}-linux64.tar.gz
+RUN tar -xvzf /geckodriver-v${GECKO_VERSION}-linux64.tar.gz -C /usr/local/bin  
+ENV PATH=/usr/local/bin:$PATH
 
 COPY app.py /app
 COPY zetkin.py /app
