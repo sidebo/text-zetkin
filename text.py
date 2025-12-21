@@ -25,7 +25,7 @@ from zetkin import get_access_token
 
 
 TEXT_LIMIT = 160
-PRICE_PER_TEXT = 0.35
+PRICE_PER_TEXT = 0.5
 VAT = 1.25
 CURRENCY = 'SEK'
 
@@ -64,13 +64,15 @@ def format_phone(phone, country='SE'):
 
 
 
-def send_sms(text, phone, username, password, from_number):
+def send_sms(text, phone, username, password, from_):
+    """from_ can be either a number or a string. If not a number, recipients
+    cannot reply."""
     print("Send SMS to %s: %s" % (phone, text))
     resp = requests.post(
         "https://api.46elks.com/a1/sms",
         auth = (username, password),
         data = {
-            "from": from_number,
+            "from": from_,
             "to": phone,
             "message": text,
         }
@@ -316,7 +318,7 @@ except Exception as e:
 
 SMS_USERNAME = os.environ.get('46ELKS_API_USER') or input('Please enter 46elks API username: ')
 SMS_PASSWORD = os.environ.get('46ELKS_API_PASSWORD') or input('Please enter 46elks API password: ')
-SMS_FROM = os.environ.get('46ELKS_PHONE') or input("Please enter 46elks phone number: ")
+SMS_FROM = os.getenv('46ELKS_PHONE', 'VHS')
 
 
 continue_texting = 'R'
