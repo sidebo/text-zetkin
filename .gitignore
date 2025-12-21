@@ -1,2 +1,7 @@
 .env
 input
+.api-cache
+.data-cache-323
+.env_hammarby
+.venv/
+__pycache__/
