@@ -47,13 +47,15 @@ def format_phone(phone, country='SE'):
 
     return phonenumbers.format_number(phone, phonenumbers.PhoneNumberFormat.NATIONAL)
 
-def send_sms(text, phone, username, password, from_number):
+def send_sms(text, phone, username, password, from_):
+    """from_ can be either a number or a string. If not a number, recipients
+    cannot reply."""
     print("Send SMS to %s: %s" % (phone, text))
     resp = requests.post(
         BASE_URL_46ELKS,
         auth = (username, password),
         data = {
-            "from": from_number,
+            "from": from_,
             "to": phone,
             "message": text,
         }
