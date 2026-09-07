@@ -10,7 +10,9 @@ API_USERNAME = os.environ["46ELKS_API_USER"]
 API_PASSWORD = os.environ["46ELKS_API_PASSWORD"]
 DRY_RUN=os.getenv("DRY_RUN", "true").lower() == "true"
 
-INPUT_FILE = "input/Ej betalt årets medlemsavgift (inkl belopp & OCR) 2025_12_21.csv"
+#INPUT_FILE = "input/Ej betalt årets medlemsavgift (inkl belopp & OCR) 2025_12_21.csv"
+INPUT_FILE = "input/allamedlemmar-20260907.csv"
+
 
 def read_text_file(filename):
     with open(filename, "rt") as f:
@@ -26,9 +28,10 @@ df = pd.read_csv(INPUT_FILE, usecols=['Förnamn', 'Efternamn',
 
 df["Mobiltelefon"] = df["Mobiltelefon"].map(normalize_phone)
 missing_phone_nr = df["Mobiltelefon"].isna()
-print("Kan inte skicka pga saknat eller utländskt mobilnummer:")
-print(df.loc[missing_phone_nr, ["Förnamn", "Efternamn"]])
-df = df[~missing_phone_nr]
+if missing_phone_nr.sum() > 0:
+    print("Kan inte skicka pga saknat eller utländskt mobilnummer:")
+    print(df.loc[missing_phone_nr, ["Förnamn", "Efternamn"]])
+    df = df[~missing_phone_nr]
 
 content_template = \
 """Hej {Fornamn}! Det verkar som att du inte betalt årets medlemsavgift till Vänsterpartiet.
@@ -38,16 +41,19 @@ Om du nyss betalt avgiften kan du bortse från detta sms.
 God jul!
 /Vänsterpartiet Hammarby-Skarpnäck
 """
-for _, person in df.iterrows():
-    text_content = content_template.format(Fornamn=person["Förnamn"], Belopp=person["SenastReskontra_AviseratBelopp"][:3], OCR=person["SenastReskontra_OCR"])
-    print("På väg att skicka till\n", list(person), "\nmeddelande: \n'", text_content, "'")
-    if not DRY_RUN:
-        ret = send_sms(text_content, person["Mobiltelefon"], API_USERNAME, API_PASSWORD, from_="VHS")
-        response = ret['response']
-        if response['status'] != 200:
-            print("ERROR kunde inte skicka till ", person)
-            print(response['body'])
+if len(df) > 0:
+    for _, person in df.iterrows():
+        text_content = content_template.format(Fornamn=person["Förnamn"], Belopp=person["SenastReskontra_AviseratBelopp"][:3], OCR=person["SenastReskontra_OCR"])
+        print("På väg att skicka till\n", list(person), "\nmeddelande: \n'", text_content, "'")
+        if not DRY_RUN:
+            ret = send_sms(text_content, person["Mobiltelefon"], API_USERNAME, API_PASSWORD, from_="VHS")
+            response = ret['response']
+            if response['status'] != 200:
+                print("ERROR kunde inte skicka till ", person)
+                print(response['body'])
+            else:
+                print("Skickat och klart!")
         else:
-            print("Skickat och klart!")
-    else:
-        print("DRY_RUN flaggat. Skickar inget.")
+            print("DRY_RUN flaggat. Skickar inget.")
+else:
+    print("Empty df! nothing to do.")
